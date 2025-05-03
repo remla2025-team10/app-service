@@ -24,6 +24,11 @@ jobs:
       # - name: Run tests
       #   run: pytest
 
+<<<<<<< HEAD
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+=======
       - name: Semantic versioning
         id: versioning
         uses: paulhatch/semantic-version@v5.0.2
@@ -32,9 +37,14 @@ jobs:
           version_format: "${major}.${minor}.${patch}"
           major_pattern: "BREAKING CHANGE:"
           minor_pattern: "feat:"
+>>>>>>> a36142b... fix: update versioning configuration in release workflow
           
-      - name: Update VERSION file
-        run: echo "${{ steps.versioning.outputs.version }}" > VERSION
+      - name: Create VERSION file
+        run: echo "${{ steps.get_version.outputs.VERSION }}" > VERSION
+
+      - name: Build package
+        run: |
+          tar -czf app-${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude='.git' --exclude='.github' .
         
       - name: Create Release
         id: create_release
@@ -42,18 +52,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
-          tag_name: v${{ steps.versioning.outputs.version }}
-          release_name: Release v${{ steps.versioning.outputs.version }}
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
 
-      - name: Commit version change
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add VERSION
-          git commit -m "Bump version to ${{ steps.versioning.outputs.version }}"
-          git push
-
-
-
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./app-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_name: app-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_content_type: application/gzip
+          

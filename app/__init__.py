@@ -8,7 +8,7 @@ def get_version():
         with open("VERSION", "r") as f:
             return f.read().strip()
     except:
-        return "0.0.0"
+        return "unknown"
 
 def create_app(config_name=None):
     """Application Factory"""
