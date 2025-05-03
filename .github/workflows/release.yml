@@ -33,7 +33,7 @@ jobs:
 
       - name: Build package
         run: |
-          tar -czf app-${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude='.git' --exclude='.github' .
+          tar --warning=no-file-changed -czf app-${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude='.git' --exclude='.github' .
         
       - name: Create Release
         id: create_release
