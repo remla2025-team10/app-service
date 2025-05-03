@@ -32,7 +32,7 @@ The application will start on `http://localhost:5000` by default. You can change
 
 ### Release Versioning
 
-Use the following commands to create a new release when committing to the branch:
+Use the following commands to create a new release after committing to the branch:
 
 ```bash
 git tag -a vX.Y.Z -m "Release version X.Y.Z"
