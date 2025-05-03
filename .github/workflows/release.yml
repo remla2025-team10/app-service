@@ -33,13 +33,15 @@ jobs:
 
       - name: Build package
         run: |
-          tar --warning=no-file-changed -czf app-${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude='.git' --exclude='.github' .
-        
+          mkdir -p /tmp/app-release
+          rsync -av --exclude='.git' --exclude='.github' . /tmp/app-release/
+          tar -czf app-${{ steps.get_version.outputs.VERSION }}.tar.gz -C /tmp/app-release .        
+      
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref_name }}
