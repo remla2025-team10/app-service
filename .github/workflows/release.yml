@@ -29,10 +29,9 @@ jobs:
         uses: paulhatch/semantic-version@v5.0.2
         with:
           tag_prefix: "v"
+          version_format: "${major}.${minor}.${patch}"
           major_pattern: "BREAKING CHANGE:"
           minor_pattern: "feat:"
-          patch_pattern: "fix:"
-          version_format: "${major}.${minor}.${patch}"
           
       - name: Update VERSION file
         run: echo "${{ steps.versioning.outputs.version }}" > VERSION
