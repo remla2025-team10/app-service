@@ -12,7 +12,7 @@ def index():
     #     # TODO: automatically fetch version
     #     "version": "NOT IMPLEMENTED"
     # })
-    return render_template('index.html')
+    return render_template('index.html', version=current_app.config["VERSION"])
     
 @main_bp.route('/health', methods=['GET'])
 def health_check():
@@ -28,9 +28,6 @@ def predict():
     
     # Invoke model service
     from app.models.model_handler import predict_with_model
-    
-    
-
     
     try:
         result = predict_with_model(data)

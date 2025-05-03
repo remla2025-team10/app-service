@@ -25,3 +25,16 @@ To run the application, use the following command:
 ```bash
 python run.py
 ```
+
+The application will start on `http://localhost:5000` by default. You can change the host and port by modifying the `run.py` file.
+
+## Development
+
+### Release Versioning
+
+Use the following commands to create a new release when committing to the branch:
+
+```bash
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```

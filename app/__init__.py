@@ -2,6 +2,14 @@ from flask import Flask
 import os
 from dotenv import load_dotenv
 
+
+def get_version():
+    try:
+        with open("VERSION", "r") as f:
+            return f.read().strip()
+    except:
+        return "0.0.0"
+
 def create_app(config_name=None):
     """Application Factory"""
     
@@ -14,6 +22,7 @@ def create_app(config_name=None):
     
     app_settings = os.getenv("APP_SETTINGS", "config.DevelopmentConfig")
     app.config.from_object(app_settings)
+    app.config["VERSION"] = get_version()
     
     # Register two modules
     from app.routes import main_bp, model_bp

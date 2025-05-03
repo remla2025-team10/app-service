@@ -22,6 +22,18 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         
+        .team-info {
+            text-align: center;
+            margin-top: -20px;
+            margin-bottom: 25px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .team-info p {
+            margin: 0;
+        }
+
         h1 {
             color: #2c3e50;
             text-align: center;
@@ -109,7 +121,11 @@
 <body>
     <div class="container">
         <h1>Restaurant Review Sentiment Analysis</h1>
-        
+
+        <div class="team-info">
+            <p>by remla25-team10 | APP Version <span id="app-version">{{ version }}</span> | Lib Version <span id="lib-version">NOT IMPLEMENTED</span></p>
+        </div>
+
         <div class="form-group">
             <label for="review">Enter your restaurant review:</label>
             <textarea id="review" placeholder="Type your review here... (e.g., 'The food was delicious and the service was excellent!')"></textarea>
@@ -165,19 +181,8 @@
                 
                 if (data.result) {
                     sentimentResult.textContent = `Sentiment: ${data.result.prediction}`;
-                    //confidenceScore.textContent = `Confidence: ${(data.prediction.confidence * 100).toFixed(2)}%`;
-                    
-                    // Add appropriate class based on sentiment
-                    /*if (data.prediction.sentiment === 'Positive') {
-                        resultDiv.classList.add('positive');
-                    } else if (data.prediction.sentiment === 'Negative') {
-                        resultDiv.classList.add('negative');
-                    } else {
-                        resultDiv.classList.add('neutral');
-                    }*/
                 } else {
                     sentimentResult.textContent = 'Error: Could not analyze sentiment';
-                    //confidenceScore.textContent = '';
                     resultDiv.classList.add('neutral');
                 }
                 
