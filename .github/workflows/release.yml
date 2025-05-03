@@ -24,20 +24,9 @@ jobs:
       # - name: Run tests
       #   run: pytest
 
-<<<<<<< HEAD
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-=======
-      - name: Semantic versioning
-        id: versioning
-        uses: paulhatch/semantic-version@v5.0.2
-        with:
-          tag_prefix: "v"
-          version_format: "${major}.${minor}.${patch}"
-          major_pattern: "BREAKING CHANGE:"
-          minor_pattern: "feat:"
->>>>>>> a36142b... fix: update versioning configuration in release workflow
           
       - name: Create VERSION file
         run: echo "${{ steps.get_version.outputs.VERSION }}" > VERSION
