@@ -1,8 +1,9 @@
 name: Release
 on:
   push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+    branches:
+      - '**' # For testing purposes, trigger on all branches
+      # - 'master'
 
 jobs:
   release:
@@ -24,18 +25,27 @@ jobs:
       # - name: Run tests
       #   run: pytest
 
-      - name: Get version from tag
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Semantic versioning
+        id: versioning
+        uses: paulhatch/semantic-version@v5.0.2
+        with:
+          tag_prefix: "v"
+          major_pattern: "BREAKING CHANGE:"
+          minor_pattern: "feat:"
+          version_format: "${major}.${minor}.${patch}"
+      
+      # - name: Get version from tag
+      #   id: get_version
+      #   run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
           
       - name: Create VERSION file
-        run: echo "${{ steps.get_version.outputs.VERSION }}" > VERSION
+        run: echo "${{ steps.versioning.outputs.version }}" > VERSION
 
       - name: Build package
         run: |
           mkdir -p /tmp/app-release
           rsync -av --exclude='.git' --exclude='.github' . /tmp/app-release/
-          tar -czf app-${{ steps.get_version.outputs.VERSION }}.tar.gz -C /tmp/app-release .        
+          tar -czf app-${{ steps.versioning.outputs.version }}.tar.gz -C /tmp/app-release .        
       
       - name: Create Release
         id: create_release
@@ -43,8 +53,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref_name }}
+          tag_name: ${{ steps.versioning.outputs.version }}
+          release_name: Release ${{ steps.versioning.outputs.version }}
           draft: true
           prerelease: false
 
@@ -54,7 +64,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./app-${{ steps.get_version.outputs.VERSION }}.tar.gz
-          asset_name: app-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          asset_path: ./app-${{ steps.versioning.outputs.version }}.tar.gz
+          asset_name: app-${{ steps.versioning.outputs.version }}.tar.gz
           asset_content_type: application/gzip
           
