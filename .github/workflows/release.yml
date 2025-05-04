@@ -35,11 +35,7 @@ jobs:
           major_pattern: "BREAKING CHANGE:"
           minor_pattern: "feat:"
           version_format: "${major}.${minor}.${patch}"
-      
-      # - name: Get version from tag
-      #   id: get_version
-      #   run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-          
+                    
       - name: Create VERSION file
         run: echo "${{ steps.versioning.outputs.version }}" > VERSION
 
