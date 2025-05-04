@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for all tags and branches
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -53,9 +55,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.versioning.outputs.version }}
-          release_name: Release ${{ steps.versioning.outputs.version }}
-          draft: true
+          tag_name: v${{ steps.versioning.outputs.version }}
+          release_name: Release v${{ steps.versioning.outputs.version }}
+          body: Release version ${{ steps.versioning.outputs.version }}
+          draft: false
           prerelease: false
 
       - name: Upload Release Asset
