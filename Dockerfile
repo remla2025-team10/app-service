@@ -10,3 +10,5 @@ COPY . .
 EXPOSE 5000
 
 CMD ["python", "run.py"]
+
+LABEL org.opencontainers.image.source https://github.com/remla2025-team10/app-service
