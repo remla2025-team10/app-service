@@ -40,7 +40,8 @@ def predict_with_model(data):
     model = load_model(model_name)
     
     MODEL_SERVICE_URL = current_app.config.get('MODEL_SERVICE_URL', 'test')
-    model_url = MODEL_SERVICE_URL + '/predict'
+    if MODEL_SERVICE_URL is not None:
+        model_url = MODEL_SERVICE_URL + '/predict'
     
     response = None
     

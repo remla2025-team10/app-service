@@ -23,7 +23,7 @@ def create_app(config_name=None):
     app_settings = os.getenv("APP_SETTINGS", "config.DevelopmentConfig")
     app.config.from_object(app_settings)
     app.config["VERSION"] = get_version()
-    app.config['MODEL_SERVICE_URL'] = os.environ.get('MODEL_SERVICE_URL', 'http://localhost:5000')
+    app.config['MODEL_SERVICE_URL'] = os.environ.get('MODEL_SERVICE_URL')
     
     # Register two modules
     from app.routes import main_bp, model_bp
