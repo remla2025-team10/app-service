@@ -94,8 +94,6 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/app-service:${{ env.version }}
-            ghcr.io/${{ github.repository }}/app-service:${{ env.version_major }}.${{ env.version_minor }}.latest
-            ghcr.io/${{ github.repository }}/app-service:${{ env.version_major }}.latest
-            ghcr.io/${{ github.repository }}/app-service:latest
+            ghcr.io/${{ github.repository_owner }}/app-service:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/app-service:latest
           
