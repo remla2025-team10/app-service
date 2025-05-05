@@ -30,16 +30,12 @@ def predict_with_model(data):
     Returns:
         Dictionary with prediction results
     """
-    
-    model_name = data.get("model", "default")
-    
+        
     input_data = data.get("input")
     if not input_data:
         raise ValueError("No input provided for prediction")
-    
-    model = load_model(model_name)
-    
-    MODEL_SERVICE_URL = current_app.config.get('MODEL_SERVICE_URL', 'test')
+        
+    MODEL_SERVICE_URL = current_app.config.get('MODEL_SERVICE_URL', 'http://model-service:3000')
     if MODEL_SERVICE_URL is not None:
         model_url = MODEL_SERVICE_URL + '/predict'
     
@@ -48,15 +44,14 @@ def predict_with_model(data):
     if MODEL_SERVICE_URL is None or MODEL_SERVICE_URL == 'test':
         # Return mock response for testing
         response = {
-            "model_used": model_name,
-            "model_version": model['version'],
             "prediction": "Example prediction result",
         }
     else:
-        # Make actual API request and return the JSON response
-        api_response = requests.post(model_url, json=data)
+        model_request = {"Review": input_data}
+        
+        api_response = requests.post(model_url, json=model_request)
         api_response.raise_for_status()  # Raise exception for HTTP errors
         response = api_response.json()
     
-    current_app.logger.info(f"Made prediction with model: {model_name}")
+    current_app.logger.info(f"Made prediction with model: {input_data}")
     return response
