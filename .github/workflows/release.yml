@@ -94,6 +94,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/app-service:${{ steps.versioning.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/app-service:${{ github.ref_name }}
             ghcr.io/${{ github.repository_owner }}/app-service:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/${{ github.repository }}
           
