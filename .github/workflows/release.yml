@@ -36,6 +36,7 @@ jobs:
           major_pattern: "BREAKING CHANGE:"
           minor_pattern: "feat:"
           version_format: "${major}.${minor}.${patch}"
+          bump_each_commit: true
                     
       - name: Create VERSION file
         run: echo "${{ steps.versioning.outputs.version }}" > VERSION
