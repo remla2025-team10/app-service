@@ -30,7 +30,7 @@ The application will start on `http://localhost:5000` by default. You can change
 
 ### Image
 
-The image is on https://github.com/remla2025-team10/app-service/pkgs/container/app-service. You can use it with
+The image is on https://github.com/remla2025-team10/app-service/pkgs/container/app-service. You can use it with:
 
 ```bash
 docker pull ghcr.io/remla2025-team10/app-service:latest
