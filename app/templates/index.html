@@ -1,0 +1,198 @@
+<!-- /app/templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Review Sentiment Analysis</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .team-info {
+            text-align: center;
+            margin-top: -20px;
+            margin-bottom: 25px;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .team-info p {
+            margin: 0;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .positive {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .negative {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .neutral {
+            background-color: #e2e3e5;
+            border: 1px solid #d6d8db;
+            color: #383d41;
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Restaurant Review Sentiment Analysis</h1>
+
+        <div class="team-info">
+            <p>by remla25-team10 | APP Version <span id="app-version">{{ version }}</span> | Lib Version <span id="lib-version">{{ lib_version }}</span></p>
+        </div>
+
+        <div class="form-group">
+            <label for="review">Enter your restaurant review:</label>
+            <textarea id="review" placeholder="Type your review here... (e.g., 'The food was delicious and the service was excellent!')"></textarea>
+        </div>
+        
+        <button id="analyze-btn">Analyze Sentiment</button>
+        
+        <div class="loader" id="loader"></div>
+        
+        <div id="result">
+            <h3>Sentiment Analysis Result:</h3>
+            <p id="sentiment-result"></p>
+            <p id="confidence-score"></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('analyze-btn').addEventListener('click', async function() {
+            const reviewText = document.getElementById('review').value.trim();
+            
+            if (!reviewText) {
+                alert('Please enter a review first!');
+                return;
+            }
+            
+            // Show loader
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/models/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        input: reviewText
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Hide loader
+                document.getElementById('loader').style.display = 'none';
+                
+                // Show result
+                const resultDiv = document.getElementById('result');
+                const sentimentResult = document.getElementById('sentiment-result');
+                const confidenceScore = document.getElementById('confidence-score');
+                
+                // Reset classes
+                resultDiv.classList.remove('positive', 'negative', 'neutral');
+                
+                if (data.result) {
+                    sentimentResult.textContent = `Sentiment: ${data.result.prediction}`;
+                } else {
+                    sentimentResult.textContent = 'Error: Could not analyze sentiment';
+                    resultDiv.classList.add('neutral');
+                }
+                
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                // Hide loader
+                document.getElementById('loader').style.display = 'none';
+                alert('Error analyzing sentiment: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

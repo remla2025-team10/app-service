@@ -1,0 +1,104 @@
+name: Release
+on:
+  push:
+    branches:
+      - '**' # For testing purposes, trigger on all branches
+      # - 'master'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for all tags and branches
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest black flake8 setuptools wheel requests
+          pip install git+https://github.com/remla2025-team10/lib-version.git@dev#egg=lib-version&subdirectory=lib-version
+
+      # - name: Run tests
+      #   run: pytest
+
+      - name: Semantic versioning
+        id: versioning
+        uses: paulhatch/semantic-version@v5.0.2
+        with:
+          tag_prefix: "v"
+          major_pattern: "BREAKING CHANGE:"
+          minor_pattern: "feat:"
+          version_format: "${major}.${minor}.${patch}"
+                    
+      - name: Create VERSION file
+        run: echo "${{ steps.versioning.outputs.version }}" > VERSION
+
+      - name: Build package
+        run: |
+          mkdir -p /tmp/app-release
+          rsync -av --exclude='.git' --exclude='.github' . /tmp/app-release/
+          tar -czf app-${{ steps.versioning.outputs.version }}.tar.gz -C /tmp/app-release .        
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          tag_name: v${{ steps.versioning.outputs.version }}
+          release_name: Release v${{ steps.versioning.outputs.version }}
+          body: Release version ${{ steps.versioning.outputs.version }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./app-${{ steps.versioning.outputs.version }}.tar.gz
+          asset_name: app-${{ steps.versioning.outputs.version }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GH_TOKEN }}
+          
+      - name: Parse version info
+        run: |
+          VERSION="${{ steps.versioning.outputs.version }}"
+          MAJOR=$(echo "$VERSION" | cut -d . -f 1)
+          MINOR=$(echo "$VERSION" | cut -d . -f 2)
+          PATCH=$(echo "$VERSION" | cut -d . -f 3)
+          echo "version=$VERSION" >> $GITHUB_ENV
+          echo "version_major=$MAJOR" >> $GITHUB_ENV
+          echo "version_minor=$MINOR" >> $GITHUB_ENV
+          echo "version_patch=$PATCH" >> $GITHUB_ENV
+          
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/app-service:v${{ env.version }}
+            ghcr.io/${{ github.repository_owner }}/app-service:latest
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=App Service for Team 10
+            org.opencontainers.image.version=${{ env.version }}
+          
