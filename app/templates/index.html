@@ -143,6 +143,21 @@
     </div>
 
     <script>
+
+        // A user visits page 
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/metrics/user_visit', { method: 'POST' });
+        });
+        
+        // A user leaves page
+        window.addEventListener('beforeunload', function() {
+            navigator.sendBeacon('/api/metrics/user_leave');
+        });
+
+
+
+
+
         document.getElementById('analyze-btn').addEventListener('click', async function() {
             const reviewText = document.getElementById('review').value.trim();
             
@@ -191,6 +206,39 @@
                 // Hide loader
                 document.getElementById('loader').style.display = 'none';
                 alert('Error analyzing sentiment: ' + error.message);
+            }
+
+            if (resultDiv) {
+                const feedbackDiv = document.createElement('div');
+                feedbackDiv.className = 'feedback-container';
+                feedbackDiv.innerHTML = `
+                    <p>Was this analysis helpful?</p>
+                    <button class="feedback-btn" data-value="yes">👍 Yes</button>
+                    <button class="feedback-btn" data-value="no">👎 No</button>
+                `;
+                resultDiv.appendChild(feedbackDiv);
+                
+                // Feedback buttons
+                feedbackDiv.querySelectorAll('.feedback-btn').forEach(btn => {
+                    btn.addEventListener('click', async function() {
+                        const value = this.getAttribute('data-value');
+                        try {
+                            await fetch('/api/metrics/feedback', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    feedback: value,
+                                    sentiment: data.result.prediction
+                                })
+                            });
+                            feedbackDiv.innerHTML = '<p>Thank you for your feedback!</p>';
+                        } catch (error) {
+                            console.error('Error sending feedback:', error);
+                        }
+                    });
+                });
             }
         });
     </script>

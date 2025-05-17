@@ -6,3 +6,4 @@ black==24.1.1
 flake8==7.0.0
 requests==2.31.0
 git+https://github.com/remla2025-team10/lib-version.git@dev#egg=lib-version
+prometheus-flask-exporter==0.22.3
