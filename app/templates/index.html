@@ -111,6 +111,40 @@
             margin: 20px auto;
             display: none;
         }
+
+        #result h3 {
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        #sentiment-result {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .feedback-container {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+            background-color: rgba(240, 240, 240, 0.5);
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        .feedback-container p {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .feedback-btn {
+            padding: 8px 16px;
+            margin-right: 10px;
+        }
         
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -153,10 +187,6 @@
         window.addEventListener('beforeunload', function() {
             navigator.sendBeacon('/api/metrics/user_leave');
         });
-
-
-
-
 
         document.getElementById('analyze-btn').addEventListener('click', async function() {
             const reviewText = document.getElementById('review').value.trim();
@@ -202,44 +232,53 @@
                 }
                 
                 resultDiv.style.display = 'block';
+
+                if (resultDiv) {
+                    // remove existing feedback container if it exists
+                    const existingFeedback = resultDiv.querySelector('.feedback-container');
+                    if (existingFeedback) {
+                        existingFeedback.remove();
+                    }
+                    // Add new feedback container
+                    const feedbackDiv = document.createElement('div');
+                    feedbackDiv.className = 'feedback-container';
+                    feedbackDiv.innerHTML = `
+                        <p><strong>Was this analysis helpful?</strong></p>
+                        <button class="feedback-btn" data-value="yes">👍 Yes</button>
+                        <button class="feedback-btn" data-value="no">👎 No</button>
+                    `;
+                    resultDiv.appendChild(feedbackDiv);
+                    
+                    // Feedback buttons
+                    feedbackDiv.querySelectorAll('.feedback-btn').forEach(btn => {
+                        btn.addEventListener('click', async function() {
+                            const value = this.getAttribute('data-value');
+                            try {
+                                await fetch('/api/metrics/feedback', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        feedback: value,
+                                        sentiment: data.result.prediction
+                                    })
+                                });
+                                feedbackDiv.innerHTML = '<p>Thank you for your feedback!</p>';
+                            } catch (error) {
+                                console.error('Error sending feedback:', error);
+                            }
+                        });
+                    });
+                }
+
             } catch (error) {
                 // Hide loader
                 document.getElementById('loader').style.display = 'none';
                 alert('Error analyzing sentiment: ' + error.message);
             }
 
-            if (resultDiv) {
-                const feedbackDiv = document.createElement('div');
-                feedbackDiv.className = 'feedback-container';
-                feedbackDiv.innerHTML = `
-                    <p>Was this analysis helpful?</p>
-                    <button class="feedback-btn" data-value="yes">👍 Yes</button>
-                    <button class="feedback-btn" data-value="no">👎 No</button>
-                `;
-                resultDiv.appendChild(feedbackDiv);
-                
-                // Feedback buttons
-                feedbackDiv.querySelectorAll('.feedback-btn').forEach(btn => {
-                    btn.addEventListener('click', async function() {
-                        const value = this.getAttribute('data-value');
-                        try {
-                            await fetch('/api/metrics/feedback', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                    feedback: value,
-                                    sentiment: data.result.prediction
-                                })
-                            });
-                            feedbackDiv.innerHTML = '<p>Thank you for your feedback!</p>';
-                        } catch (error) {
-                            console.error('Error sending feedback:', error);
-                        }
-                    });
-                });
-            }
+            
         });
     </script>
 </body>
