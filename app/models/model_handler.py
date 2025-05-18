@@ -58,7 +58,7 @@ def predict_with_model(data):
         response = api_response.json()
     
     if response and "prediction" in response:
-        sentiment = response["prediction"].lower()
+        sentiment = str(response["prediction"]).lower()
         review_counter.labels(sentiment=sentiment).inc()
         
     processing_time = time.time() - start_time
