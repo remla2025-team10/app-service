@@ -45,7 +45,7 @@ def create_app(config_name=None):
     # https://12factor.net/config
     load_dotenv()
     
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="static")
     
     app_settings = os.getenv("APP_SETTINGS", "config.DevelopmentConfig")
     app.config.from_object(app_settings)
