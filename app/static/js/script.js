@@ -53,7 +53,7 @@ document.getElementById('analyze-btn').addEventListener('click', async function(
         
         resultDiv.style.display = 'block';
 
-        if (data.result && data.result.prediction) {
+        if (data.result) {
             // remove existing feedback container if it exists
             const existingFeedback = resultDiv.querySelector('.feedback-container');
             if (existingFeedback) {
