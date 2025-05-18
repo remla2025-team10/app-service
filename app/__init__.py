@@ -53,7 +53,12 @@ def create_app(config_name=None):
     app.config['MODEL_SERVICE_URL'] = os.environ.get('MODEL_SERVICE_URL', 'http://model-service:3000')
     app.config['PORT'] = os.environ.get("PORT", 5000)
     
-    metrics = PrometheusMetrics(app)
+    metrics = PrometheusMetrics(
+        app,
+        path='/metrics',          
+        export_defaults=True,     
+        group_by_endpoint=True    
+    )
     
     metrics.info('app_info', 'Application info', version=app.config["VERSION"])
     

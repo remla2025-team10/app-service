@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from app import current_users_gauge, user_feedback_counter
 
 metrics_bp = Blueprint('metrics', __name__, url_prefix="/api/metrics")
@@ -11,6 +11,7 @@ def user_visit():
 @metrics_bp.route('/user_leave', methods=['POST'])
 def user_leave():
     current_users_gauge.dec()
+    current_app.logger.info("User left the application")
     return jsonify({"status": "success"})
 
 @metrics_bp.route('/feedback', methods=['POST'])
@@ -24,4 +25,5 @@ def record_feedback():
             feedback=feedback, 
             sentiment=sentiment.lower() if sentiment else 'unknown'
         ).inc()
+    current_app.logger.info(f"Feedback recorded: {feedback}, Sentiment: {sentiment}")
     return jsonify({"status": "feedback recorded"})
