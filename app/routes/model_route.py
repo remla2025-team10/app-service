@@ -8,7 +8,7 @@ def predict():
     
     # Validation
     if not data:
-        return jsonify({"error": "No input data procided"}), 400
+        return jsonify({"error": "No input data provided"}), 400
     
     # Invoke model service
     from app.models.model_handler import predict_with_model
