@@ -6,7 +6,7 @@ from prometheus_client import Counter, Gauge, Histogram
 
 
 review_counter = Counter(
-    'resturant_reviews_total',
+    'restaurant_reviews_total',
     'Total number of restaurant reviews analyzed',
     ['sentiment']
 )
