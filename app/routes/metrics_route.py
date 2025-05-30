@@ -27,3 +27,22 @@ def record_feedback():
         ).inc()
     current_app.logger.info(f"Feedback recorded: {feedback}, Sentiment: {sentiment}")
     return jsonify({"status": "feedback recorded"})
+
+# filepath: [metrics_route.py](http://_vscodecontentref_/0)
+@metrics_bp.route('/feedback/count', methods=['GET'])
+def get_feedback_count():
+    total_count = 0
+    
+    feedback_metrics = {}
+    
+    for labels, counter in user_feedback_counter._metrics.items():
+        value = counter._value.get()
+        total_count += value
+        label_dict = dict(zip(user_feedback_counter._labelnames, labels))
+        feedback_metrics[str(label_dict)] = value
+    
+    return jsonify({
+        "status": "success",
+        "total_feedback_count": total_count,
+        "feedback_details": feedback_metrics
+    })
