@@ -8,6 +8,28 @@ window.addEventListener('beforeunload', function() {
     navigator.sendBeacon('/api/metrics/user_leave');
 });
 
+function displayRandomGif() {
+    const randomNumber = Math.floor(Math.random() * 5) + 1; // Random number between 1-5
+    const gifPath = `/static/pic/${randomNumber}.gif`;
+    
+    const gifImg = document.createElement('img');
+    gifImg.src = gifPath;
+    gifImg.alt = 'Random reaction GIF';
+    
+    return gifImg;
+}
+
+function displayRandomThankyouGif() {
+    const randomNumber = Math.floor(Math.random() * 5) + 1;
+    const gifPath = `/static/pic/t${randomNumber}.gif`;
+
+    const gifImg = document.createElement('img');
+    gifImg.src = gifPath;
+    gifImg.alt = 'Thank you GIF';
+
+    return gifImg;
+}
+
 document.getElementById('analyze-btn').addEventListener('click', async function() {
     const reviewText = document.getElementById('review').value.trim();
     
@@ -59,16 +81,37 @@ document.getElementById('analyze-btn').addEventListener('click', async function(
             if (existingFeedback) {
                 existingFeedback.remove();
             }
+            
+            // Create random GIF element
+            const gifImg = displayRandomGif();
+            
             // Add new feedback container
             const feedbackDiv = document.createElement('div');
             feedbackDiv.className = 'feedback-container';
-            feedbackDiv.innerHTML = `
-                <p><strong>Was this analysis helpful?</strong></p>
-                <button class="feedback-btn" data-value="yes">👍 Yes</button>
-                <button class="feedback-btn" data-value="no">👎 No</button>
-            `;
-            resultDiv.appendChild(feedbackDiv);
             
+            
+                        // Create feedback section (left side)
+            const feedbackContent = document.createElement('div');
+            feedbackContent.className = 'feedback-content';
+            feedbackContent.innerHTML = `
+                <p><strong>Was this analysis helpful?</strong></p>
+                <div class="feedback-buttons">
+                    <button class="feedback-btn" data-value="yes">👍 Yes</button>
+                    <button class="feedback-btn" data-value="no">👎 No</button>
+                </div>
+            `;
+            
+            // Create GIF container (right side)
+            const gifContainer = document.createElement('div');
+            gifContainer.id = 'random-gif-container';
+            gifContainer.appendChild(gifImg);
+            
+            // Add both sections to the feedback container
+            feedbackDiv.appendChild(feedbackContent);
+            feedbackDiv.appendChild(gifContainer);
+            resultDiv.appendChild(feedbackDiv);
+
+
             // Feedback buttons
             feedbackDiv.querySelectorAll('.feedback-btn').forEach(btn => {
                 btn.addEventListener('click', async function() {
@@ -84,7 +127,21 @@ document.getElementById('analyze-btn').addEventListener('click', async function(
                                 sentiment: data.result.prediction
                             })
                         });
-                        feedbackDiv.innerHTML = '<p>Thank you for your feedback!</p>';
+            
+                        // Get the container that was created earlier
+                        const gifContainer = feedbackDiv.querySelector('#random-gif-container');
+                        
+                        // Clear the container properly
+                        while (gifContainer.firstChild) {
+                            gifContainer.removeChild(gifContainer.firstChild);
+                        }
+                        
+                        // Show thank you GIF
+                        const thankYouGif = displayRandomThankyouGif();
+                        gifContainer.appendChild(thankYouGif);
+            
+                        // Replace feedback content with thank you message
+                        feedbackDiv.querySelector('.feedback-content').innerHTML = '<p><strong>Thank you for your feedback!</strong></p>';
                     } catch (error) {
                         console.error('Error sending feedback:', error);
                     }
