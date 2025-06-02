@@ -2,8 +2,8 @@ name: Release
 on:
   push:
     branches:
-      - '**' # For testing purposes, trigger on all branches
-      # - 'master'
+      - 'main'
+      - 'enhanced-app'
 
 jobs:
   release:
@@ -98,9 +98,12 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/app-service:v${{ env.version }}
+            ghcr.io/${{ github.repository_owner }}/app-service:${{ github.ref_name == 'main' && 'v1' || 'v2' }}
             ghcr.io/${{ github.repository_owner }}/app-service:latest
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=App Service for Team 10
             org.opencontainers.image.version=${{ env.version }}
+            org.opencontainers.image.variant=${{ github.ref_name == 'main' && 'v1' || 'v2' }}
+
           
