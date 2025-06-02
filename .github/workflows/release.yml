@@ -2,8 +2,7 @@ name: Release
 on:
   push:
     branches:
-      - '**' # For testing purposes, trigger on all branches
-      # - 'master'
+      - '*'
 
 jobs:
   release:
@@ -38,8 +37,29 @@ jobs:
           version_format: "${major}.${minor}.${patch}"
           bump_each_commit: true
                     
+      - name: Set branch-specific version
+        id: branch_version
+        run: |
+          RAW_VERSION=${{ steps.versioning.outputs.version }}
+          MINOR=$(echo "$RAW_VERSION" | cut -d . -f 2)
+          PATCH=$(echo "$RAW_VERSION" | cut -d . -f 3)
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            MAJOR=1
+            echo "version=1.${MINOR}.${PATCH}" >> $GITHUB_ENV
+          elif [[ "${{ github.ref_name }}" == "enhanced-app" ]]; then
+            MAJOR=2
+            echo "version=2.${MINOR}.${PATCH}" >> $GITHUB_ENV
+          else
+            # 测试分支使用0.x.x版本
+            MAJOR=0
+            echo "version=0.${MINOR}.${PATCH}" >> $GITHUB_ENV
+          fi
+          echo "version_major=$MAJOR" >> $GITHUB_ENV
+          echo "version_minor=$MINOR" >> $GITHUB_ENV
+          echo "version_patch=$PATCH" >> $GITHUB_ENV
+
       - name: Create VERSION file
-        run: echo "${{ steps.versioning.outputs.version }}" > VERSION
+        run: echo "${{ env.version }}" > VERSION
 
       - name: Build package
         run: |
@@ -98,9 +118,10 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/app-service:v${{ env.version }}
-            ghcr.io/${{ github.repository_owner }}/app-service:latest
+            ghcr.io/${{ github.repository_owner }}/app-service:v${{ env.version_major }}
+            ${{ github.ref_name == 'main' && format('ghcr.io/{0}/app-service:latest', github.repository_owner) || '' }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=App Service for Team 10
             org.opencontainers.image.version=${{ env.version }}
-          
+            org.opencontainers.image.variant=v${{ env.version_major }}
