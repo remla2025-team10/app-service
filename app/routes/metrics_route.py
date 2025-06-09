@@ -70,7 +70,7 @@ def get_feedback_count():
         "actual_visits": visits,
         "per_100_users": round((total_count / max(visits, 1)) * 100, 2),
         "conversion_rate": round((total_count / max(visits, 1)) * 100, 2),
-        "configured_traffic_distribution": traffic_distribution  # 名称更改以避免误解
+        "configured_traffic_distribution": traffic_distribution
     }
     
     return jsonify({
