@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, current_app
-from app import current_users_gauge, user_feedback_counter
+from app import current_users_gauge, user_feedback_counter, get_version
 
 metrics_bp = Blueprint('metrics', __name__, url_prefix="/api/metrics")
 
@@ -19,16 +19,19 @@ def record_feedback():
     data = request.get_json()
     feedback = data.get('feedback')
     sentiment = data.get('sentiment')
+    version = get_version()
+    if version is not None and version.startswith('v'):
+        version = version.split('.')[0][1:]
     
     if feedback and sentiment:
         user_feedback_counter.labels(
             feedback=feedback, 
-            sentiment=sentiment.lower() if sentiment else 'unknown'
+            sentiment=sentiment.lower() if sentiment else 'unknown',
+            version=version
         ).inc()
     current_app.logger.info(f"Feedback recorded: {feedback}, Sentiment: {sentiment}")
     return jsonify({"status": "feedback recorded"})
 
-# filepath: [metrics_route.py](http://_vscodecontentref_/0)
 @metrics_bp.route('/feedback/count', methods=['GET'])
 def get_feedback_count():
     total_count = 0
