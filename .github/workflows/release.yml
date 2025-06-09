@@ -66,8 +66,20 @@ jobs:
           rsync -av --exclude='.git' --exclude='.github' . /tmp/app-release/
           tar -czf app-${{ env.version }}.tar.gz -C /tmp/app-release .        
       
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          git fetch --tags
+          if git rev-parse "v${{ env.version }}" >/dev/null 2>&1; then
+            echo "Tag v${{ env.version }} already exists"
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Create Release
         id: create_release
+        if: steps.check_tag.outputs.tag_exists != 'true'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
