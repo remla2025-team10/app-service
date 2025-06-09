@@ -21,6 +21,10 @@ document.getElementById('analyze-btn').addEventListener('click', async function(
     document.getElementById('result').style.display = 'none';
     
     try {
+        // Send click event to metrics API
+        fetch('/api/metrics/click', {method: 'POST'});
+
+        // Send review text to the model API for sentiment analysis
         const response = await fetch('/api/models/predict', {
             method: 'POST',
             headers: {
@@ -39,7 +43,8 @@ document.getElementById('analyze-btn').addEventListener('click', async function(
         // Show result
         const resultDiv = document.getElementById('result');
         const sentimentResult = document.getElementById('sentiment-result');
-        const confidenceScore = document.getElementById('confidence-score');
+        // TODO consider removing this if not needed
+        // const confidenceScore = document.getElementById('confidence-score');
         
         // Reset classes
         resultDiv.classList.remove('positive', 'negative', 'neutral');
