@@ -28,6 +28,11 @@ sentiment_analysis_duration = Histogram(
     buckets=[0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0]
 )
 
+total_predict_times = Counter(
+    'total_predict_times',
+    'Total number of times the model prediction endpoint has been called'
+)
+
 
 
 def get_version():
