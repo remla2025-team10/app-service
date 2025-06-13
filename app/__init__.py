@@ -14,12 +14,13 @@ review_counter = Counter(
 user_feedback_counter = Counter(
     'user_feedback_total',
     'User feedback on sentiment analysis results',
-    ['feedback', 'sentiment']
+    ['version', 'feedback', 'sentiment']
 )
 
 current_users_gauge = Gauge(
     'active_users_count', 
-    'Number of users currently using the application'
+    'Number of users currently using the application',
+    ['version']
 )
 
 sentiment_analysis_duration = Histogram(
@@ -30,7 +31,8 @@ sentiment_analysis_duration = Histogram(
 
 total_predict_times = Counter(
     'total_predict_times',
-    'Total number of times the model prediction endpoint has been called'
+    'Total number of times the model prediction endpoint has been called',
+    ['version']
 )
 
 
