@@ -1,22 +1,26 @@
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, Response
 from app import current_users_gauge, user_feedback_counter, total_predict_times, get_version
+from prometheus_client import generate_latest
 
 metrics_bp = Blueprint('metrics', __name__, url_prefix="/api/metrics")
 
 @metrics_bp.route('/user_visit', methods=['POST'])
 def user_visit():
-    current_users_gauge.inc()
+    version = get_version_number()
+    current_users_gauge.labels(version=version).inc()
     return jsonify({"status": "success"})
 
 @metrics_bp.route('/user_leave', methods=['POST'])
 def user_leave():
-    current_users_gauge.dec()
+    version = get_version_number()
+    current_users_gauge.labels(version=version).dec()
     current_app.logger.info("User left the application")
     return jsonify({"status": "success"})
 
 @metrics_bp.route('/click', methods=['POST'])
 def record_click():
-    total_predict_times.inc()
+    version = get_version_number()
+    total_predict_times.labels(version=version).inc()
     return jsonify({"status": "success"})
     
 @metrics_bp.route('/feedback', methods=['POST'])
@@ -24,13 +28,15 @@ def record_feedback():
     data = request.get_json()
     feedback = data.get('feedback')
     sentiment = data.get('sentiment')
+    version = get_version_number()
     
     if feedback and sentiment:
         user_feedback_counter.labels(
+            version=version,
             feedback=feedback, 
             sentiment=sentiment.lower() if sentiment else 'unknown'
         ).inc()
-    current_app.logger.info(f"Feedback recorded: {feedback}, Sentiment: {sentiment}")
+    current_app.logger.info(f"Feedback recorded: {feedback}, Sentiment: {sentiment}, Version: {version}")
     return jsonify({"status": "feedback recorded"})
 
 @metrics_bp.route('/feedback/count', methods=['GET'])
@@ -39,17 +45,17 @@ def get_feedback_count():
     version = get_version_number()
     feedback_metrics = {}
     
-    visits = 0
+    clicks = 0 
     try:
         for metric in total_predict_times.collect():
             for sample in metric.samples:
-                if sample.name == 'total_predict_times_total':
-                    visits += sample.value
-                    current_app.logger.info(f"Found visit count: {sample.value}")
+                if sample.name == 'total_predict_times_total' and sample.labels.get('version') == version:
+                    clicks += sample.value
+                    current_app.logger.info(f"Found prediction clicks for version {version}: {sample.value}")
         
     except Exception as e:
-        current_app.logger.error(f"Error getting visit count: {e}")
-        visits = 1
+        current_app.logger.error(f"Error getting prediction clicks count: {e}")
+        clicks = 1
     
     traffic_distribution = 1.0
     if version == "1":  
@@ -60,16 +66,18 @@ def get_feedback_count():
         traffic_distribution = 0.5
     
     for labels, counter in user_feedback_counter._metrics.items():
-        value = counter._value.get()
-        total_count += value
+        # check whether version aligns
         label_dict = dict(zip(user_feedback_counter._labelnames, labels))
-        feedback_metrics[str(label_dict)] = value
+        if label_dict.get('version') == version:
+            value = counter._value.get()
+            total_count += value
+            feedback_metrics[str(label_dict)] = value
     
     normalized_metrics = {
         "raw_count": total_count,
-        "actual_visits": visits,
-        "per_100_users": round((total_count / max(visits, 1)) * 100, 2),
-        "conversion_rate": round((total_count / max(visits, 1)) * 100, 2),
+        "prediction_clicks": clicks,
+        "per_100_clicks": round((total_count / max(clicks, 1)) * 100, 2),
+        "conversion_rate": round((total_count / max(clicks, 1)) * 100, 2),
         "configured_traffic_distribution": traffic_distribution
     }
     
@@ -80,6 +88,61 @@ def get_feedback_count():
         "version": version,
         "normalized_metrics": normalized_metrics
     })
+
+@metrics_bp.route('/prometheus', methods=['GET'])
+def prometheus_metrics():
+    # Return Prometheus metrics in text format
+    return Response(generate_latest(), mimetype='text/plain')
+
+@metrics_bp.route('/prometheus/ab_metrics', methods=['GET'])
+def ab_metrics():
+    # Output A/B testing metrics in Prometheus format
+    from prometheus_client import Gauge, CollectorRegistry, generate_latest
+    
+    registry = CollectorRegistry()
+    
+    # Create gauges for A/B testing metrics
+    feedback_count = Gauge('feedback_count', 'Count of feedback responses', 
+                          ['version', 'feedback', 'sentiment'], registry=registry)
+    prediction_clicks = Gauge('prediction_clicks', 'Number of prediction button clicks by version', 
+                         ['version'], registry=registry)
+    conversion_rate = Gauge('feedback_conversion_rate', 'Conversion rate percentage (feedback/clicks)', 
+                           ['version'], registry=registry)
+    
+    # Get different versions
+    versions = ["1", "2"]
+    
+    for version in versions:
+        clicks = 0 
+        try:
+            for metric in total_predict_times.collect():
+                for sample in metric.samples:
+                    if sample.name == 'total_predict_times_total' and sample.labels.get('version') == version:
+                        clicks += sample.value
+        except Exception as e:
+            current_app.logger.error(f"Error getting prediction clicks count: {e}")
+            clicks = 0
+            
+        prediction_clicks.labels(version=version).set(clicks)
+        
+        # Calculate feedback counts for the specific version
+        total_count = 0
+        for labels, counter in user_feedback_counter._metrics.items():
+            label_dict = dict(zip(user_feedback_counter._labelnames, labels))
+            if label_dict.get('version') == version:
+                value = counter._value.get()
+                total_count += value
+                feedback_count.labels(
+                    version=version,
+                    feedback=label_dict.get('feedback', 'unknown'),
+                    sentiment=label_dict.get('sentiment', 'unknown')
+                ).set(value)
+                
+        # Calculate conversion rate based on prediction clicks
+        conversion = (total_count / max(clicks, 1)) * 100 if clicks > 0 else 0
+        conversion_rate.labels(version=version).set(conversion)
+    
+    return Response(generate_latest(registry), mimetype='text/plain')
     
 def get_version_number():
     version = get_version()
