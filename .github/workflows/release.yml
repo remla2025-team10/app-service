@@ -61,6 +61,11 @@ jobs:
       - name: Create VERSION file
         run: echo "${{ env.version }}" > VERSION
 
+      - name: Debug tags
+        run: |
+          git fetch --tags
+          git tag --sort=-v:refname
+
       - name: Build package
         run: |
           mkdir -p /tmp/app-release
