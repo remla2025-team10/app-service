@@ -12,6 +12,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Fetch all history for all tags and branches
+          fetch-tags: true # Fetch all tags
 
       - name: Set up Python
         uses: actions/setup-python@v4
