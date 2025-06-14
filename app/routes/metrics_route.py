@@ -31,12 +31,26 @@ def record_feedback():
     version = extract_major_version(get_version())
     
     if feedback and sentiment:
-        user_feedback_counter.labels(
-            version=version,
-            feedback=feedback, 
-            sentiment=sentiment.lower() if sentiment else 'unknown'
-        ).inc()
-    current_app.logger.info(f"Feedback recorded: {feedback}, Sentiment: {sentiment}, Version: {version}")
+        try:
+            # Get metric state before incrementing
+            before_count = len(user_feedback_counter._metrics.items())
+            
+            user_feedback_counter.labels(
+                version=version,
+                feedback=feedback, 
+                sentiment=sentiment.lower() if sentiment else 'unknown'
+            ).inc()
+            
+            # Get metric state after incrementing
+            after_count = len(user_feedback_counter._metrics.items())
+            
+            current_app.logger.info(f"Feedback counter incremented: before={before_count}, after={after_count}")
+            current_app.logger.info(f"Feedback recorded for version {version}: {feedback}, Sentiment: {sentiment}")
+        except Exception as e:
+            current_app.logger.error(f"Error incrementing feedback counter: {e}", exc_info=True)
+    else:
+        current_app.logger.warning(f"Incomplete feedback data received: feedback={feedback}, sentiment={sentiment}")
+        
     return jsonify({"status": "feedback recorded"})
 
 @metrics_bp.route('/feedback/count', methods=['GET'])
