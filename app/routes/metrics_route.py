@@ -97,7 +97,7 @@ def prometheus_metrics():
 @metrics_bp.route('/prometheus/ab_metrics', methods=['GET'])
 def ab_metrics():
     # Output A/B testing metrics in Prometheus format
-    from prometheus_client import Gauge, CollectorRegistry, generate_latest
+    from prometheus_client import Gauge, CollectorRegistry, generate_latest, REGISTRY
     
     current_app.logger.info("AB metrics endpoint called")
     registry = CollectorRegistry()
@@ -110,9 +110,49 @@ def ab_metrics():
     conversion_rate = Gauge('feedback_conversion_rate', 'Conversion rate percentage (feedback/clicks)', 
                            ['version'], registry=registry)
     
+    # Print overall metrics information for debugging
+    current_app.logger.info(f"Feedback counter structure type: {type(user_feedback_counter)}")
+    current_app.logger.info(f"Feedback counter label names: {user_feedback_counter._labelnames}")
+    
+    # Print all metrics from registry
+    current_app.logger.info("--- Examining all available metrics in registry ---")
+    try:
+        for metric in REGISTRY.collect():
+            if "feedback" in metric.name or "predict" in metric.name:
+                current_app.logger.info(f"Registry metric: {metric.name}, type: {metric.type}")
+                for sample in metric.samples:
+                    current_app.logger.info(f"  Sample: {sample.name}, labels: {sample.labels}, value: {sample.value}")
+    except Exception as e:
+        current_app.logger.error(f"Error examining registry metrics: {e}")
+    current_app.logger.info("--- End of registry metrics ---")
+    
     # Get different versions
     versions = ["1", "2"]
     current_app.logger.info(f"Processing metrics for versions: {versions}")
+    
+    # First, print ALL available feedback entries regardless of version
+    current_app.logger.info("--- ALL FEEDBACK ENTRIES (regardless of version) ---")
+    try:
+        all_feedback_items = list(user_feedback_counter._metrics.items())
+        current_app.logger.info(f"Total feedback metrics entries: {len(all_feedback_items)}")
+        
+        if len(all_feedback_items) == 0:
+            current_app.logger.warning("No feedback metrics found in counter. Checking if feedback endpoint was called...")
+            
+            # Check if the feedback endpoint was called at all
+            for metric in REGISTRY.collect():
+                if "http_request" in metric.name:
+                    for sample in metric.samples:
+                        if sample.labels.get('endpoint') == 'metrics.record_feedback' and sample.labels.get('method') == 'POST':
+                            current_app.logger.info(f"Found record_feedback endpoint calls: {sample.name}, value: {sample.value}")
+        
+        for idx, (labels, counter) in enumerate(all_feedback_items):
+            label_dict = dict(zip(user_feedback_counter._labelnames, labels))
+            value = counter._value.get()
+            current_app.logger.info(f"  Feedback entry #{idx+1}: labels={label_dict}, value={value}")
+    except Exception as e:
+        current_app.logger.error(f"Error examining feedback entries: {e}", exc_info=True)
+    current_app.logger.info("--- END OF ALL FEEDBACK ENTRIES ---")
     
     for version in versions:
         current_app.logger.info(f"Processing metrics for version: {version}")
@@ -143,24 +183,28 @@ def ab_metrics():
         # Calculate feedback counts for the specific version
         total_count = 0
         current_app.logger.debug(f"Getting feedback metrics for version {version}")
-        current_app.logger.debug(f"Available metrics: {len(user_feedback_counter._metrics.items())}")
+        current_app.logger.debug(f"Available feedback metrics: {len(user_feedback_counter._metrics.items())}")
         
+        current_app.logger.info(f"--- FEEDBACK MATCHING VERSION {version} ---")
         for labels, counter in user_feedback_counter._metrics.items():
             label_dict = dict(zip(user_feedback_counter._labelnames, labels))
             original_version = label_dict.get('version', '')
             extracted_version = extract_major_version(original_version)
-            current_app.logger.debug(f"Checking feedback metric with labels: {label_dict}, extracted version: {extracted_version}")
+            current_app.logger.info(f"  Checking: original_version={original_version}, extracted={extracted_version}, match={extracted_version == version}")
             
             if extracted_version == version:
                 value = counter._value.get()
                 total_count += value
-                current_app.logger.info(f"Found feedback for version {version} (from {original_version}): {label_dict}, value: {value}")
+                current_app.logger.info(f"  ✓ MATCH! Version {version}: {label_dict}, value: {value}")
                 
                 feedback_count.labels(
                     version=version,
                     feedback=label_dict.get('feedback', 'unknown'),
                     sentiment=label_dict.get('sentiment', 'unknown')
                 ).set(value)
+            else:
+                current_app.logger.info(f"  ✗ NO MATCH: Version comparison failed: {extracted_version} != {version}")
+        current_app.logger.info(f"--- END FEEDBACK MATCHING FOR VERSION {version} ---")
                 
         current_app.logger.info(f"Total feedback count for version {version}: {total_count}")
                 
@@ -168,6 +212,25 @@ def ab_metrics():
         conversion = (total_count / max(clicks, 1)) * 100 if clicks > 0 else 0
         conversion_rate.labels(version=version).set(conversion)
         current_app.logger.info(f"Set conversion_rate for version {version} to {conversion}%")
+    
+    # Add additional debug option to inject test data if requested
+    use_test_data = request.args.get('test_data', 'false').lower() == 'true'
+    if use_test_data:
+        current_app.logger.info("Test data requested - adding sample feedback data")
+        for ver in versions:
+            feedback_count.labels(version=ver, feedback="test_feedback", sentiment="positive").set(5)
+            current_app.logger.info(f"Added test feedback data for version {ver}: 5 items")
+            
+            # Recalculate conversion
+            ver_clicks = prediction_clicks._metrics.get((ver,), 0)
+            if ver_clicks:
+                ver_clicks = ver_clicks._value.get()
+            else:
+                ver_clicks = 10  # Default test value 
+            
+            test_conversion = (5 / max(ver_clicks, 1)) * 100
+            conversion_rate.labels(version=ver).set(test_conversion)
+            current_app.logger.info(f"Updated conversion rate for version {ver} to {test_conversion}%")
     
     current_app.logger.info("AB metrics endpoint completed successfully")
     return Response(generate_latest(registry), mimetype='text/plain')
