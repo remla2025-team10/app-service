@@ -30,15 +30,18 @@ def record_feedback():
     sentiment = data.get('sentiment')
     version = extract_major_version(get_version())
     
-    if feedback and sentiment:
+    if feedback and sentiment is not None:
         try:
             # Get metric state before incrementing
             before_count = len(user_feedback_counter._metrics.items())
             
+            # Convert sentiment to string for consistency in metrics
+            sentiment_str = str(sentiment).lower() if sentiment is not None else 'unknown'
+            
             user_feedback_counter.labels(
                 version=version,
                 feedback=feedback, 
-                sentiment=sentiment.lower() if sentiment else 'unknown'
+                sentiment=sentiment_str
             ).inc()
             
             # Get metric state after incrementing
