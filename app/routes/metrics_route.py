@@ -125,10 +125,12 @@ def ab_metrics():
             for metric in metrics_collection:
                 current_app.logger.debug(f"Metric name: {metric.name}, samples: {len(metric.samples)}")
                 for sample in metric.samples:
-                    current_app.logger.debug(f"Sample: {sample.name}, labels: {sample.labels}, value: {sample.value}")
-                    if sample.name == 'total_predict_times_total' and sample.labels.get('version') == version:
+                    sample_version = extract_major_version(sample.labels.get('version', ''))
+                    current_app.logger.debug(f"Sample: {sample.name}, labels: {sample.labels}, extracted version: {sample_version}, value: {sample.value}")
+                    
+                    if sample.name == 'total_predict_times_total' and sample_version == version:
                         clicks += sample.value
-                        current_app.logger.info(f"Found click metric for version {version}: +{sample.value}, total now: {clicks}")
+                        current_app.logger.info(f"Found click metric for version {version} (from {sample.labels.get('version')}): +{sample.value}, total now: {clicks}")
             
             current_app.logger.info(f"Total clicks for version {version}: {clicks}")
         except Exception as e:
@@ -145,12 +147,14 @@ def ab_metrics():
         
         for labels, counter in user_feedback_counter._metrics.items():
             label_dict = dict(zip(user_feedback_counter._labelnames, labels))
-            current_app.logger.debug(f"Checking feedback metric with labels: {label_dict}")
+            original_version = label_dict.get('version', '')
+            extracted_version = extract_major_version(original_version)
+            current_app.logger.debug(f"Checking feedback metric with labels: {label_dict}, extracted version: {extracted_version}")
             
-            if label_dict.get('version') == version:
+            if extracted_version == version:
                 value = counter._value.get()
                 total_count += value
-                current_app.logger.info(f"Found feedback for version {version}: {label_dict}, value: {value}")
+                current_app.logger.info(f"Found feedback for version {version} (from {original_version}): {label_dict}, value: {value}")
                 
                 feedback_count.labels(
                     version=version,
@@ -168,6 +172,29 @@ def ab_metrics():
     current_app.logger.info("AB metrics endpoint completed successfully")
     return Response(generate_latest(registry), mimetype='text/plain')
     
+def extract_major_version(version_str):
+    """
+    Extract the major version number from a version string.
+    Examples:
+    - "v2.10.2" -> "2"
+    - "2.10.2" -> "2"
+    - "v2" -> "2"
+    - "2" -> "2"
+    """
+    if not version_str:
+        return ""
+    
+    # Remove 'v' prefix if present
+    if version_str.startswith('v'):
+        version_str = version_str[1:]
+    
+    # Extract major version (first part before any dot)
+    parts = version_str.split('.')
+    if parts and parts[0].isdigit():
+        return parts[0]
+    
+    return version_str  # Return original if parsing fails
+
 def get_version_number():
     version = get_version()
     if version is not None and version.startswith('v'):
