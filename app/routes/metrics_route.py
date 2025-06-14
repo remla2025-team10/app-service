@@ -6,20 +6,20 @@ metrics_bp = Blueprint('metrics', __name__, url_prefix="/api/metrics")
 
 @metrics_bp.route('/user_visit', methods=['POST'])
 def user_visit():
-    version = get_version_number()
+    version = extract_major_version(get_version())
     current_users_gauge.labels(version=version).inc()
     return jsonify({"status": "success"})
 
 @metrics_bp.route('/user_leave', methods=['POST'])
 def user_leave():
-    version = get_version_number()
+    version = extract_major_version(get_version())
     current_users_gauge.labels(version=version).dec()
     current_app.logger.info("User left the application")
     return jsonify({"status": "success"})
 
 @metrics_bp.route('/click', methods=['POST'])
 def record_click():
-    version = get_version_number()
+    version = extract_major_version(get_version())
     total_predict_times.labels(version=version).inc()
     return jsonify({"status": "success"})
     
@@ -28,7 +28,7 @@ def record_feedback():
     data = request.get_json()
     feedback = data.get('feedback')
     sentiment = data.get('sentiment')
-    version = get_version_number()
+    version = extract_major_version(get_version())
     
     if feedback and sentiment:
         user_feedback_counter.labels(
@@ -42,7 +42,7 @@ def record_feedback():
 @metrics_bp.route('/feedback/count', methods=['GET'])
 def get_feedback_count():
     total_count = 0
-    version = get_version_number()
+    version = extract_major_version(get_version())
     feedback_metrics = {}
     
     clicks = 0 
@@ -194,9 +194,3 @@ def extract_major_version(version_str):
         return parts[0]
     
     return version_str  # Return original if parsing fails
-
-def get_version_number():
-    version = get_version()
-    if version is not None and version.startswith('v'):
-        version = version.split('.')[0][1:]
-    return version
