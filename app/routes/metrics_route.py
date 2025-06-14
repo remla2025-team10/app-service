@@ -175,22 +175,40 @@ def ab_metrics():
 def extract_major_version(version_str):
     """
     Extract the major version number from a version string.
+    Handles both pure numbers and semantic versioning formats.
+    
     Examples:
     - "v2.10.2" -> "2"
     - "2.10.2" -> "2"
     - "v2" -> "2"
     - "2" -> "2"
+    - "" -> ""
     """
     if not version_str:
         return ""
+    
+    # Case: pure number - return as is if it's already a digit
+    if version_str.isdigit():
+        return version_str
     
     # Remove 'v' prefix if present
     if version_str.startswith('v'):
         version_str = version_str[1:]
     
-    # Extract major version (first part before any dot)
-    parts = version_str.split('.')
-    if parts and parts[0].isdigit():
-        return parts[0]
+    # Case: semantic version (with dots)
+    if '.' in version_str:
+        parts = version_str.split('.')
+        if parts and parts[0].isdigit():
+            return parts[0]
+    # Case: just a number potentially with non-digit characters
+    elif version_str.isdigit():
+        return version_str
     
-    return version_str  # Return original if parsing fails
+    # Try to extract any leading digits
+    import re
+    match = re.match(r'(\d+)', version_str)
+    if match:
+        return match.group(1)
+        
+    # Fallback: return original if no digits found
+    return version_str
