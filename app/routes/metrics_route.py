@@ -99,6 +99,7 @@ def ab_metrics():
     # Output A/B testing metrics in Prometheus format
     from prometheus_client import Gauge, CollectorRegistry, generate_latest
     
+    current_app.logger.info("AB metrics endpoint called")
     registry = CollectorRegistry()
     
     # Create gauges for A/B testing metrics
@@ -111,37 +112,60 @@ def ab_metrics():
     
     # Get different versions
     versions = ["1", "2"]
+    current_app.logger.info(f"Processing metrics for versions: {versions}")
     
     for version in versions:
+        current_app.logger.info(f"Processing metrics for version: {version}")
         clicks = 0 
         try:
-            for metric in total_predict_times.collect():
+            current_app.logger.debug(f"Collecting total_predict_times metrics")
+            metrics_collection = list(total_predict_times.collect())
+            current_app.logger.info(f"Found {len(metrics_collection)} total_predict_times metric collections")
+            
+            for metric in metrics_collection:
+                current_app.logger.debug(f"Metric name: {metric.name}, samples: {len(metric.samples)}")
                 for sample in metric.samples:
+                    current_app.logger.debug(f"Sample: {sample.name}, labels: {sample.labels}, value: {sample.value}")
                     if sample.name == 'total_predict_times_total' and sample.labels.get('version') == version:
                         clicks += sample.value
+                        current_app.logger.info(f"Found click metric for version {version}: +{sample.value}, total now: {clicks}")
+            
+            current_app.logger.info(f"Total clicks for version {version}: {clicks}")
         except Exception as e:
-            current_app.logger.error(f"Error getting prediction clicks count: {e}")
+            current_app.logger.error(f"Error getting prediction clicks count: {e}", exc_info=True)
             clicks = 0
             
         prediction_clicks.labels(version=version).set(clicks)
+        current_app.logger.info(f"Set prediction_clicks metric for version {version} to {clicks}")
         
         # Calculate feedback counts for the specific version
         total_count = 0
+        current_app.logger.debug(f"Getting feedback metrics for version {version}")
+        current_app.logger.debug(f"Available metrics: {len(user_feedback_counter._metrics.items())}")
+        
         for labels, counter in user_feedback_counter._metrics.items():
             label_dict = dict(zip(user_feedback_counter._labelnames, labels))
+            current_app.logger.debug(f"Checking feedback metric with labels: {label_dict}")
+            
             if label_dict.get('version') == version:
                 value = counter._value.get()
                 total_count += value
+                current_app.logger.info(f"Found feedback for version {version}: {label_dict}, value: {value}")
+                
                 feedback_count.labels(
                     version=version,
                     feedback=label_dict.get('feedback', 'unknown'),
                     sentiment=label_dict.get('sentiment', 'unknown')
                 ).set(value)
                 
+        current_app.logger.info(f"Total feedback count for version {version}: {total_count}")
+                
         # Calculate conversion rate based on prediction clicks
         conversion = (total_count / max(clicks, 1)) * 100 if clicks > 0 else 0
         conversion_rate.labels(version=version).set(conversion)
+        current_app.logger.info(f"Set conversion_rate for version {version} to {conversion}%")
     
+    current_app.logger.info("AB metrics endpoint completed successfully")
     return Response(generate_latest(registry), mimetype='text/plain')
     
 def get_version_number():
