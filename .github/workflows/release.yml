@@ -70,30 +70,40 @@ jobs:
 
       - name: Set Version Environment Variables
         run: |
+          VERSION=""
+          MAJOR=""
+          MINOR=""
+          PATCH=""
           # Set the version based on the branch
           if [ "${{ github.ref }}" == "refs/heads/main" ]; then
             echo "Using main version"
-            echo "version=${{ steps.main_version.outputs.version }}" >> $GITHUB_ENV
-            echo "version_major=${{ steps.main_version.outputs.major }}" >> $GITHUB_ENV
-            echo "version_minor=${{ steps.main_version.outputs.minor }}" >> $GITHUB_ENV
-            echo "version_patch=${{ steps.main_version.outputs.patch }}" >> $GITHUB_ENV
+            VERSION="${{ steps.main_version.outputs.version }}"
+            MAJOR="${{ steps.main_version.outputs.major }}"
+            MINOR="${{ steps.main_version.outputs.minor }}"
+            PATCH="${{ steps.main_version.outputs.patch }}"
           elif [ "${{ github.ref }}" == "refs/heads/enhanced-app" ]; then
             echo "Using beta version"
-            echo "version=${{ steps.beta_version.outputs.version }}" >> $GITHUB_ENV
-            echo "version_major=${{ steps.beta_version.outputs.major }}" >> $GITHUB_ENV
-            echo "version_minor=${{ steps.beta_version.outputs.minor }}" >> $GITHUB_ENV
-            echo "version_patch=${{ steps.beta_version.outputs.patch }}" >> $GITHUB_ENV
+            VERSION="${{ steps.beta_version.outputs.version }}"
+            MAJOR="${{ steps.beta_version.outputs.major }}"
+            MINOR="${{ steps.beta_version.outputs.minor }}"
+            PATCH="${{ steps.beta_version.outputs.patch }}"
           else
             echo "Using pre-release version"
-            echo "version=${{ steps.pre_version.outputs.version }}" >> $GITHUB_ENV
-            echo "version_major=${{ steps.pre_version.outputs.major }}" >> $GITHUB_ENV
-            echo "version_minor=${{ steps.pre_version.outputs.minor }}" >> $GITHUB_ENV
-            echo "version_patch=${{ steps.pre_version.outputs.patch }}" >> $GITHUB_ENV
+            VERSION="${{ steps.pre_version.outputs.version }}"
+            MAJOR="${{ steps.pre_version.outputs.major }}"
+            MINOR="${{ steps.pre_version.outputs.minor }}"
+            PATCH="${{ steps.pre_version.outputs.patch }}"
           fi
+          
           echo "Version set to: $VERSION"
 
+          echo "version=$VERSION" >> $GITHUB_ENV
+          echo "version_major=$MAJOR" >> $GITHUB_ENV
+          echo "version_minor=$MINOR" >> $GITHUB_ENV
+          echo "version_patch=$PATCH" >> $GITHUB_ENV
+
       - name: Create VERSION file
-        run: echo "${{ env.VERSION }}" > VERSION
+        run: echo "${{ env.version }}" > VERSION
 
       - name: Build package
         run: |
