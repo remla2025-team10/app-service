@@ -2,7 +2,9 @@ name: Release
 on:
   push:
     branches:
-      - '*'
+      - main
+      - enhanced-app
+      - '**'
 
 jobs:
   release:
@@ -25,46 +27,83 @@ jobs:
           pip install pytest black flake8 setuptools wheel requests
           pip install git+https://github.com/remla2025-team10/lib-version.git@dev#egg=lib-version&subdirectory=lib-version
 
-      # - name: Run tests
-      #   run: pytest
-
-      - name: Semantic versioning
-        id: versioning
-        uses: paulhatch/semantic-version@v5.0.2
+      - name: Main Version
+        if: github.ref == 'refs/heads/main'
+        id: main_version
+        uses: paulhatch/semantic-version@v5.4.0
         with:
           tag_prefix: "v"
+          version_format: "${major}.${minor}.${patch}"
           major_pattern: "BREAKING CHANGE:"
           minor_pattern: "feat:"
-          version_format: "${major}.${minor}.${patch}"
+          enable_prerelease_mode: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enhanced App (Beta) Version
+        if: github.ref == 'refs/heads/enhanced-app'
+        id: beta_version
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: "v"
+          version_format: "${major}.${minor}.${patch}-beta.${increment}"
+          major_pattern: "BREAKING CHANGE:"
+          minor_pattern: "feat:"
+          enable_prerelease_mode: true
           bump_each_commit: true
-                    
-      - name: Set branch-specific version
-        id: branch_version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pre-release Version
+        if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/enhanced-app'
+        id: pre_version
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: "v"
+          version_format: "${major}.${minor}.${patch}-pre.${increment}"
+          major_pattern: "BREAKING CHANGE:"
+          minor_pattern: "feat:"
+          enable_prerelease_mode: true
+          bump_each_commit: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set Version Environment Variables
         run: |
-          RAW_VERSION=${{ steps.versioning.outputs.version }}
-          MINOR=$(echo "$RAW_VERSION" | cut -d . -f 2)
-          PATCH=$(echo "$RAW_VERSION" | cut -d . -f 3)
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
-            MAJOR=1
-            echo "version=1.${MINOR}.${PATCH}" >> $GITHUB_ENV
-          elif [[ "${{ github.ref_name }}" == "enhanced-app" ]]; then
-            MAJOR=2
-            echo "version=2.${MINOR}.${PATCH}" >> $GITHUB_ENV
+          VERSION=""
+          MAJOR=""
+          MINOR=""
+          PATCH=""
+          # Set the version based on the branch
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "Using main version"
+            VERSION="${{ steps.main_version.outputs.version }}"
+            MAJOR="${{ steps.main_version.outputs.major }}"
+            MINOR="${{ steps.main_version.outputs.minor }}"
+            PATCH="${{ steps.main_version.outputs.patch }}"
+          elif [ "${{ github.ref }}" == "refs/heads/enhanced-app" ]; then
+            echo "Using beta version"
+            VERSION="${{ steps.beta_version.outputs.version }}"
+            MAJOR="${{ steps.beta_version.outputs.major }}"
+            MINOR="${{ steps.beta_version.outputs.minor }}"
+            PATCH="${{ steps.beta_version.outputs.patch }}"
           else
-            MAJOR=0
-            echo "version=0.${MINOR}.${PATCH}" >> $GITHUB_ENV
+            echo "Using pre-release version"
+            VERSION="${{ steps.pre_version.outputs.version }}"
+            MAJOR="${{ steps.pre_version.outputs.major }}"
+            MINOR="${{ steps.pre_version.outputs.minor }}"
+            PATCH="${{ steps.pre_version.outputs.patch }}"
           fi
+          
+          echo "Version set to: $VERSION"
+
+          echo "version=$VERSION" >> $GITHUB_ENV
           echo "version_major=$MAJOR" >> $GITHUB_ENV
           echo "version_minor=$MINOR" >> $GITHUB_ENV
           echo "version_patch=$PATCH" >> $GITHUB_ENV
 
       - name: Create VERSION file
         run: echo "${{ env.version }}" > VERSION
-
-      - name: Debug tags
-        run: |
-          git fetch --tags
-          git tag --sort=-v:refname
 
       - name: Build package
         run: |
@@ -94,7 +133,7 @@ jobs:
           release_name: Release v${{ env.version }}
           body: Release version ${{ env.version }}
           draft: false
-          prerelease: false
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
@@ -116,17 +155,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GH_TOKEN }}
           
-      # - name: Parse version info
-      #   run: |
-      #     VERSION="${{ steps.versioning.outputs.version }}"
-      #     MAJOR=$(echo "$VERSION" | cut -d . -f 1)
-      #     MINOR=$(echo "$VERSION" | cut -d . -f 2)
-      #     PATCH=$(echo "$VERSION" | cut -d . -f 3)
-      #     echo "version=$VERSION" >> $GITHUB_ENV
-      #     echo "version_major=$MAJOR" >> $GITHUB_ENV
-      #     echo "version_minor=$MINOR" >> $GITHUB_ENV
-      #     echo "version_patch=$PATCH" >> $GITHUB_ENV
-          
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -135,8 +163,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository_owner }}/app-service:v${{ env.version }}
-            ghcr.io/${{ github.repository_owner }}/app-service:v${{ env.version_major }}
             ${{ github.ref_name == 'main' && format('ghcr.io/{0}/app-service:latest', github.repository_owner) || '' }}
+            ${{ github.ref_name == 'enhanced-app' && format('ghcr.io/{0}/app-service:beta', github.repository_owner) || '' }}
+            ${{ github.ref_name != 'main' && github.ref_name != 'enhanced-app' && format('ghcr.io/{0}/app-service:pre', github.repository_owner) || '' }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=App Service for Team 10
