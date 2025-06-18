@@ -90,7 +90,6 @@ jobs:
             echo "version_minor=${{ steps.pre_version.outputs.minor }}" >> $GITHUB_ENV
             echo "version_patch=${{ steps.pre_version.outputs.patch }}" >> $GITHUB_ENV
           fi
-          echo "version=$VERSION" >> $GITHUB_ENV
           echo "Version set to: $VERSION"
 
       - name: Create VERSION file
