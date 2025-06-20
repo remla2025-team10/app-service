@@ -13,7 +13,7 @@ RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # --- Runtime stage ---
-FROM python:3.10-slim
+FROM python:3.10-slim AS runtime
 
 WORKDIR /app
 
