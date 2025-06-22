@@ -134,6 +134,24 @@ def track_metrics(f):
 @metrics_bp.route('/user_visit', methods=['POST'])
 @track_metrics
 def user_visit():
+    """
+    Record a user visit.
+    ---
+    tags:
+      - Metrics
+    summary: Increments the gauge for current users.
+    responses:
+      200:
+        description: User visit recorded successfully.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: success
+    """
     version = extract_major_version(get_version())
     current_users_gauge.labels(version=version).inc()
     return jsonify({"status": "success"})
@@ -141,6 +159,24 @@ def user_visit():
 @metrics_bp.route('/user_leave', methods=['POST'])
 @track_metrics
 def user_leave():
+    """
+    Record a user leaving the page.
+    ---
+    tags:
+      - Metrics
+    summary: Decrements the gauge for current users.
+    responses:
+      200:
+        description: User leave recorded successfully.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: success
+    """
     version = extract_major_version(get_version())
     current_users_gauge.labels(version=version).dec()
     current_app.logger.info("User left the application")
@@ -149,6 +185,24 @@ def user_leave():
 @metrics_bp.route('/click', methods=['POST'])
 @track_metrics
 def record_click():
+    """
+    Record a click on the 'Analyze Sentiment' button.
+    ---
+    tags:
+      - Metrics
+    summary: Records a prediction click event.
+    responses:
+      200:
+        description: Click recorded successfully.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: success
+    """
     version = extract_major_version(get_version())
     # Add a click interaction
     version_interactions.labels(version=version, interaction_type='click').inc()
@@ -160,6 +214,39 @@ def record_click():
 @metrics_bp.route('/feedback', methods=['POST'])
 @track_metrics
 def record_feedback():
+    """
+    Record user feedback on the sentiment analysis.
+    ---
+    tags:
+      - Metrics
+    summary: Records user feedback (yes/no) for a prediction.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              feedback:
+                type: string
+                description: The user's feedback.
+                example: "yes"
+              sentiment:
+                type: string
+                description: The sentiment that was predicted.
+                example: "positive"
+    responses:
+      200:
+        description: Feedback recorded successfully.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: feedback recorded
+    """
     version = extract_major_version(get_version())
     start_time = time.time()
     
@@ -196,6 +283,43 @@ def record_feedback():
 
 @metrics_bp.route('/feedback/count', methods=['GET'])
 def get_feedback_count():
+    """
+    Get feedback counts and conversion metrics.
+    ---
+    tags:
+      - Metrics
+    summary: Retrieves aggregated feedback and conversion metrics for the current version.
+    responses:
+      200:
+        description: Successfully retrieved metrics.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: success
+                total_feedback_count:
+                  type: integer
+                feedback_details:
+                  type: object
+                version:
+                  type: string
+                normalized_metrics:
+                  type: object
+                  properties:
+                    raw_count:
+                      type: integer
+                    prediction_clicks:
+                      type: integer
+                    per_100_clicks:
+                      type: number
+                    conversion_rate:
+                      type: number
+                    configured_traffic_distribution:
+                      type: number
+    """
     # This endpoint can remain for API compatibility, but use derived metrics
     version = extract_major_version(get_version())
     
@@ -246,6 +370,28 @@ def get_feedback_count():
 
 @metrics_bp.route('/prometheus', methods=['GET'])
 def prometheus_metrics():
+    """
+    Expose metrics in Prometheus format.
+    ---
+    tags:
+      - Metrics
+    summary: Provides all application metrics in Prometheus format.
+    parameters:
+      - in: query
+        name: fallback
+        schema:
+          type: string
+          enum: [true, false]
+        required: false
+        description: Whether to use fallback logic for metrics.
+    responses:
+      200:
+        description: Prometheus metrics.
+        content:
+          text/plain:
+            schema:
+              type: string
+    """
     """
     Standard Prometheus metrics endpoint that includes all metrics
     including our derived/aggregated metrics.
