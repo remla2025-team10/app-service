@@ -3,32 +3,31 @@ import os
 from dotenv import load_dotenv
 from prometheus_flask_exporter import PrometheusMetrics
 from prometheus_client import Counter, Gauge, Histogram, Summary
+from flasgger import Swagger
 
 
-# 在 app/__init__.py 中定义指标
-
-# 主要交互指标
+# Main application metrics
 version_interactions = Counter(
     'version_interactions', 
     'User interactions by type and version', 
     ['version', 'interaction_type']
 )
 
-# 反馈指标
+# Feedback metrics
 feedback_metrics = Counter(
     'feedback_metrics',
     'User feedback metrics',
     ['version', 'feedback_type', 'sentiment']
 )
 
-# 转化率（预计算）
+# Conversion metrics for A/B testing
 conversion_metrics = Gauge(
     'conversion_metrics',
     'Conversion metrics for A/B testing',
     ['version', 'metric_type']  # metric_type: 'rate', 'total_clicks', 'total_feedback'
 )
 
-# 性能指标
+# Performance metrics
 performance_metrics = Histogram(
     'performance_metrics',
     'Performance metrics for different operations',
@@ -85,6 +84,13 @@ def create_app(config_name=None):
     app.config["VERSION"] = get_version()
     app.config['MODEL_SERVICE_URL'] = os.environ.get('MODEL_SERVICE_URL', 'http://model-service:3000')
     app.config['PORT'] = os.environ.get("PORT", 5000)
+    
+    app.config['SWAGGER'] = {
+        'title': 'Restaurant Review Sentiment Analysis API',
+        'uiversion': 3,
+        "specs_route": "/api/docs/"
+    }
+    swagger = Swagger(app)
     
     metrics = PrometheusMetrics(
         app,

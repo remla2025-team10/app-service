@@ -8,6 +8,20 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/', methods=['GET'])
 def index():
+    """
+    Render the main page of the application.
+    ---
+    tags:
+      - Main
+    summary: Renders the main page.
+    responses:
+      200:
+        description: The main HTML page.
+        content:
+          text/html:
+            schema:
+              type: string
+    """
     # Inc active user number
     version = extract_major_version(get_version())
     current_users_gauge.labels(version=version).inc()
@@ -17,4 +31,22 @@ def index():
     
 @main_bp.route('/health', methods=['GET'])
 def health_check():
+    """
+    Health check endpoint.
+    ---
+    tags:
+      - Main
+    summary: Checks the health of the application.
+    responses:
+      200:
+        description: Application is alive.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: alive!
+    """
     return jsonify({"status": "alive!"})
