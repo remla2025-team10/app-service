@@ -74,55 +74,75 @@ The application exports the following types of metrics:
 Counters are cumulative metrics that only increase over time:
 
 ```text
-# HELP api_requests_total Total count of API requests
-# TYPE api_requests_total counter
-api_requests_total{endpoint="/api/predict",method="POST",version="1"} 157
-api_requests_total{endpoint="/api/predict",method="POST",version="2"} 243
+python_gc_objects_collected_total{generation="0"} 161.0
+Metric: python_gc_objects_collected_total
+Labels: generation
+```
+
+```text
+user_feedback_total{feedback="yes",sentiment="example prediction result",version="1.10.5"} 1.0
+Metric: user_feedback_total
+Labels: feedback, sentiment, version
 ```
 
 #### Gauge Example
 Gauges represent values that can go up and down:
 
 ```text
-# HELP feedback_count Count of feedback responses
-# TYPE feedback_count gauge
-feedback_count{feedback="yes",sentiment="positive",version="1"} 42.0
-feedback_count{feedback="no",sentiment="positive",version="1"} 8.0
-feedback_count{feedback="yes",sentiment="negative",version="2"} 37.0
-feedback_count{feedback="no",sentiment="negative",version="2"} 12.0
+process_virtual_memory_bytes 8.79845376e+08
+Metric: process_virtual_memory_bytes
+Labels: none
+```
+
+```text
+app_info{version="1.10.5"} 1.0
+Metric: app_info
+Labels: version
 ```
 
 #### Histogram Example
 Histograms track the distribution of values:
 
 ```text
-# HELP request_processing_seconds Request processing time in seconds
-# TYPE request_processing_seconds histogram
-request_processing_seconds_bucket{version="1",le="0.01"} 12
-request_processing_seconds_bucket{version="1",le="0.1"} 85
-request_processing_seconds_bucket{version="1",le="0.5"} 126
-request_processing_seconds_bucket{version="1",le="1.0"} 144
-request_processing_seconds_bucket{version="1",le="+Inf"} 144
-request_processing_seconds_sum{version="1"} 15.97
-request_processing_seconds_count{version="1"} 144
+flask_http_request_duration_seconds_bucket{endpoint="metrics.record_feedback",le="0.005",method="POST",status="200"} 1.0
+Metric: flask_http_request_duration_seconds_bucket
+Labels: endpoint, le (bucket boundary), method, status
+```
+
+Histograms also include sum and count metrics:
+```text
+flask_http_request_duration_seconds_count{endpoint="metrics.record_feedback",method="POST",status="200"} 1.0
+Metric: flask_http_request_duration_seconds_count
+Labels: endpoint, method, status
+
+flask_http_request_duration_seconds_sum{endpoint="metrics.record_feedback",method="POST",status="200"} 0.001169801000287407
+Metric: flask_http_request_duration_seconds_sum
+Labels: endpoint, method, status
 ```
 
 #### Summary Example
 Summaries provide percentile calculations:
 
 ```text
-# HELP sentiment_analysis_duration_seconds Summary of sentiment analysis duration
-# TYPE sentiment_analysis_duration_seconds summary
 sentiment_analysis_duration_seconds{version="2",quantile="0.5"} 0.042
-sentiment_analysis_duration_seconds{version="2",quantile="0.9"} 0.198
-sentiment_analysis_duration_seconds{version="2",quantile="0.99"} 0.491
+Metric: sentiment_analysis_duration_seconds
+Labels: version, quantile (percentile)
+```
+
+Like histograms, summaries include sum and count metrics:
+```text
 sentiment_analysis_duration_seconds_sum{version="2"} 53.2
+Metric: sentiment_analysis_duration_seconds_sum
+Labels: version
+
 sentiment_analysis_duration_seconds_count{version="2"} 312
+Metric: sentiment_analysis_duration_seconds_count
+Labels: version
 ```
 
 You can integrate these metrics into a Prometheus server and visualize them using Grafana.
 
-For A/B testing, you can visit `http://localhost:5000/api/metrics` to get the Prometheus-formatted metrics for the A/B testing branches.
+For A/B testing, specific metrics are available at `http://localhost:5000/api/metrics/prometheus` to compare performance between versions.
 
 ---
 
