@@ -11,6 +11,21 @@ class ModelNotFoundError(Exception):
     pass
 
 def load_model(model_name):
+    """
+    Loads a model configuration by its name.
+
+    Note: This is a placeholder and should be updated to dynamically
+    load real model information.
+
+    Args:
+        model_name (str): The name of the model to load.
+
+    Raises:
+        ModelNotFoundError: If the model_name is not found.
+
+    Returns:
+        dict: The configuration of the requested model.
+    """
     
     # TODO Dynamically load real model list
     
@@ -26,11 +41,22 @@ def load_model(model_name):
 
 def predict_with_model(data):
     """
-    Make prediction using the appropriate model
+    Makes a prediction by calling the external model service.
+
+    This function takes input data, sends it to the configured model service
+    for sentiment analysis, records performance metrics, and returns the
+    prediction result.
+
     Args:
-        data: Dictionary containing input data and optionally model selection
+        data (dict): A dictionary containing the input data for the model.
+                     It must have an "input" key with the text to be analyzed.
+
+    Raises:
+        ValueError: If the 'input' key is not in the data dictionary.
+        requests.exceptions.RequestException: For issues connecting to the model service.
+
     Returns:
-        Dictionary with prediction results
+        dict: The JSON response from the model service, which includes the prediction.
     """
         
     start_time = time.time()
