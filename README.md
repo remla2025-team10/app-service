@@ -65,49 +65,102 @@ This application supports Prometheus metrics for monitoring and observability. T
 - **Prometheus Metrics**:  
   Exposes all metrics in Prometheus format.  
   URL: `http://localhost:5000/api/metrics/prometheus`
-
-- **A/B Testing Metrics**:  
-  Provides metrics specifically for A/B testing, such as feedback counts, prediction clicks, and conversion rates.  
-  URL: `http://localhost:5000/api/metrics/prometheus/ab_metrics`
-
+  
 ### Example Metrics
 
-- `feedback_count`: Count of feedback responses (labeled by version, feedback type, and sentiment).
-- `prediction_clicks`: Number of prediction button clicks (labeled by version).
-- `feedback_conversion_rate`: Conversion rate percentage (feedback/clicks, labeled by version).
+The application exports the following types of metrics:
 
-You can integrate these metrics into a Prometheus server and visualize them using Grafana.
+#### Counter Example
+Counters are cumulative metrics that only increase over time:
 
-For A/B testing, you can visit `http://localhost:5000/api/metrics/prometheus/ab_metrics` to get the Prometheus-formatted metrics for the A/B testing branches.
+```text
+# HELP api_requests_total Total count of API requests
+# TYPE api_requests_total counter
+api_requests_total{endpoint="/api/predict",method="POST",version="1"} 157
+api_requests_total{endpoint="/api/predict",method="POST",version="2"} 243
+```
+
+#### Gauge Example
+Gauges represent values that can go up and down:
 
 ```text
 # HELP feedback_count Count of feedback responses
 # TYPE feedback_count gauge
-feedback_count{feedback="yes",sentiment="example prediction result",version="2"} 5.0
-feedback_count{feedback="no",sentiment="example prediction result",version="2"} 1.0
-# HELP prediction_clicks Number of prediction button clicks by version
-# TYPE prediction_clicks gauge
-prediction_clicks{version="1"} 0.0
-prediction_clicks{version="2"} 10.0
-# HELP feedback_conversion_rate Conversion rate percentage (feedback/clicks)
-# TYPE feedback_conversion_rate gauge
-feedback_conversion_rate{version="1"} 0.0
-feedback_conversion_rate{version="2"} 60.0
+feedback_count{feedback="yes",sentiment="positive",version="1"} 42.0
+feedback_count{feedback="no",sentiment="positive",version="1"} 8.0
+feedback_count{feedback="yes",sentiment="negative",version="2"} 37.0
+feedback_count{feedback="no",sentiment="negative",version="2"} 12.0
 ```
+
+#### Histogram Example
+Histograms track the distribution of values:
+
+```text
+# HELP request_processing_seconds Request processing time in seconds
+# TYPE request_processing_seconds histogram
+request_processing_seconds_bucket{version="1",le="0.01"} 12
+request_processing_seconds_bucket{version="1",le="0.1"} 85
+request_processing_seconds_bucket{version="1",le="0.5"} 126
+request_processing_seconds_bucket{version="1",le="1.0"} 144
+request_processing_seconds_bucket{version="1",le="+Inf"} 144
+request_processing_seconds_sum{version="1"} 15.97
+request_processing_seconds_count{version="1"} 144
+```
+
+#### Summary Example
+Summaries provide percentile calculations:
+
+```text
+# HELP sentiment_analysis_duration_seconds Summary of sentiment analysis duration
+# TYPE sentiment_analysis_duration_seconds summary
+sentiment_analysis_duration_seconds{version="2",quantile="0.5"} 0.042
+sentiment_analysis_duration_seconds{version="2",quantile="0.9"} 0.198
+sentiment_analysis_duration_seconds{version="2",quantile="0.99"} 0.491
+sentiment_analysis_duration_seconds_sum{version="2"} 53.2
+sentiment_analysis_duration_seconds_count{version="2"} 312
+```
+
+You can integrate these metrics into a Prometheus server and visualize them using Grafana.
+
+For A/B testing, you can visit `http://localhost:5000/api/metrics` to get the Prometheus-formatted metrics for the A/B testing branches.
 
 ---
 
-## A/B Testing Branches
+## A/B Testing Implementation
 
-This repository uses two branches for A/B testing:
+This application implements A/B testing to evaluate new features and their impact on user engagement. The testing is conducted between two versions of the application:
 
-- **`main` branch**:  
-  Represents the stable version of the application. Automatically released as `v1` and `latest`.
+### Test Versions
 
-- **`enhanced_app` branch**:  
-  Represents the experimental version of the application. Automatically released as `v2`.
+- **Version A (v1)**: The stable version from the `main` branch, which provides the base sentiment analysis functionality with standard feedback options.
 
-The setup in `operation` repository allows you to run A/B tests by routing traffic to different versions (`v1` and `v2`) and collecting metrics to evaluate their performance.
+- **Version B (v2)**: The experimental version from the `enhanced-app` branch, which extends the base functionality with additional UI elements (such as encouraging GIF animations) designed to increase user engagement and feedback submission rates.
+
+### Testing Configuration
+
+When deployed with the `operation` repository setup, the application uses Istio's traffic management features to split traffic between versions:
+
+- Users with the header `x-user: experiment` are directed to Version B (v2)
+- By default, 90% of traffic goes to Version A (v1) and 10% to Version B (v2)
+
+### Metrics Collection
+
+The application collects the following A/B testing metrics via the Prometheus integration:
+
+- **Conversion rates**: The percentage of users who submit feedback after receiving sentiment analysis
+- **Feedback distribution**: Comparison of positive vs. negative feedback between versions
+- **Performance metrics**: Response times and processing durations to ensure Version B doesn't negatively impact performance
+
+These metrics are available at the `/api/metrics` endpoint and can be visualized in Grafana dashboards to make data-driven decisions about which version performs better.
+
+### Viewing Test Results
+
+To analyze the A/B test results:
+1. Deploy both versions using the `operation` repository
+2. Access the Prometheus metrics at `http://prometheus.local`
+3. View the pre-configured Grafana dashboard at `http://grafana.local` to compare version performance
+
+For more detailed information about the continuous experimentation approach, refer to the documentation in the `operation` repository.
 
 ---
 
