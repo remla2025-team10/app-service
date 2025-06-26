@@ -5,7 +5,8 @@ on:
       - main
       - enhanced-app
       - '**'
-
+    tags:
+      - 'release'
 
 jobs:
   release:
