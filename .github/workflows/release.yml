@@ -5,8 +5,7 @@ on:
       - main
       - enhanced-app
       - '**'
-    tags:
-      - '*'
+
 
 jobs:
   release:
@@ -40,7 +39,7 @@ jobs:
           minor_pattern: "feat:"
           enable_prerelease_mode: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
 
       - name: Enhanced App (Beta) Version
         if: github.ref == 'refs/heads/enhanced-app'
@@ -49,20 +48,6 @@ jobs:
         with:
           tag_prefix: "v"
           version_format: "${major}.${minor}.${patch}-beta.${increment}"
-          major_pattern: "BREAKING CHANGE:"
-          minor_pattern: "feat:"
-          enable_prerelease_mode: true
-          bump_each_commit: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Pre-release Version
-        if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/enhanced-app'
-        id: pre_version
-        uses: paulhatch/semantic-version@v5.4.0
-        with:
-          tag_prefix: "v"
-          version_format: "${major}.${minor}.${patch}-pre.${increment}"
           major_pattern: "BREAKING CHANGE:"
           minor_pattern: "feat:"
           enable_prerelease_mode: true
@@ -173,3 +158,20 @@ jobs:
             org.opencontainers.image.description=App Service for Team 10
             org.opencontainers.image.version=${{ env.version }}
             org.opencontainers.image.variant=v${{ env.version_major }}
+
+      - name: Bump patch and add pre tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${{ env.version }}"
+          PATCH=$((PATCH + 1))
+          PRE_VERSION="v$MAJOR.$MINOR.$PATCH-pre"
+
+          git checkout main
+          git pull origin main
+
+          echo "Creating empty commit for $PRE_VERSION"
+          git commit --allow-empty -m "chore: bump version to $PRE_VERSION [skip ci]"
+          git tag "$PRE_VERSION"
+
+          git push origin main
+          git push origin "$PRE_VERSION"
